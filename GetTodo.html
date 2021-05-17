@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>
+        GET TODO
+    </title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: url(./IMAGES/IMG1\ \(4\).jpg);
+                background-size: cover;
+                background-position: center;
+                font-family: sans-serif;
+
+        }
+
+        #header {
+            width: 100%;
+            height: 100px;
+            background-color: black;
+            color: white;
+            display: flex;
+            justify-content:space-between ;
+            align-items: center;
+        }
+
+        #logo {
+            font-size: 25px;
+            font-weight: 900;
+        }
+
+        #links {
+            width: 250px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #links>a {
+            text-decoration: none;
+            color: yellow;
+        }
+
+        #todolist {
+            width: 50%;
+            margin: 20px 25%;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .singleTodo {
+            width: 80%;
+            margin: 20px 10%;
+            background-color: yellow;
+            color: blue;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 100px;
+            border-radius: 10px;
+        }
+        #forms{
+            width: 50%;
+            margin: 20px 25%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="header">
+        <div id="logo">
+            Todo Application
+        </div>
+        <div id="links">
+            <a href="createTodo.html">Create Todo</a>
+            <a href="getTodo.html">Get Todo</a>
+            <button id="logoutBtn">Logout</button>
+        </div>
+    </div>
+    <div id="forms">
+         
+     </div>
+    <div id="todolist">
+       </div>
+</body>
+
+<script>
+    if(!localStorage.getItem("UserInfo")){
+        window.location.href="login.html";
+    }
+    var todolist=document.getElementById("todolist");
+    var forms=document.getElementById("forms");
+    var logoutBtn=document.getElementById("logoutBtn");
+
+    //logoutBtn
+    logoutBtn.addEventListener("click",function(e){
+        e.preventDefault();
+        localStorage.removeItem('UserInfo');
+        window.location.href="login.html";
+    })
+
+    //extract userinfo from storage
+    let UserInfo = JSON.parse(localStorage.getItem("UserInfo"));
+    
+
+    //extract id from userinfo
+    let userId = UserInfo[0]._id;
+
+    //api url
+    let url="https://todoappbackend16.herokuapp.com/getTodo/"+userId;
+
+    //fetch
+    fetch(url,{
+       method:"GET" 
+    })
+    .then(res=>{
+        return res.json();
+    })
+    .then(data=>{
+        console.log(data);
+        renderList(data)
+    })
+    .catch(err=>{
+        console.log(err);
+    })
+
+
+    //editit function here
+     function editIt(e,todoId){
+         e.preventDefault();
+         var title=document.getElementById("title");
+         var description=document.getElementById("description");
+         var deadline=document.getElementById("deadline");
+         let payload={
+             title:title.value,
+             description:description.value,
+             deadline:deadline.value,
+             todoId:todoId,
+             userId:userId
+         }
+         console.log(payload);
+
+         let url="https://todoappbackend16.herokuapp.com/updateTodo";
+
+         //fetch
+         fetch(url,{
+             method:"PATCH",
+             headers:{
+                 'content-Type':"application/json"
+             },
+             body:JSON.stringify(payload) 
+         })
+         .then(res=>{
+             return res.json();
+         })
+         .then(data=>{
+             console.log(data);
+             renderList(data);
+             forms.innerHTML="";
+         })
+         .catch(err=>{
+             console.log(err)
+         })
+     }
+
+     //editinputbox function here
+     function editInputBox(userId,todoId,titleArray,descriptionArray,deadline){
+         let title=titleArray.join(" ");
+         console.log(title)
+         let description=descriptionArray.join(" ");
+         console.log(description)
+
+         console.log("function called");
+         var html=`  <form>
+                          <input type="text" placeholder="Todo Title" id="title" value="${title}"><br />
+                          <input type="text" placeholder="Todo Description" id="description" value="${description}"><br />
+                          <input type="date" placeholder="Todo Deadline" id="deadline" value="${deadline}"><br />
+                          <button id="EditTodoBtn" onClick=editIt(event,${JSON.stringify(todoId)})>Edit Todo</button>
+                          </form>`;
+
+                          forms.innerHTML=html;
+     }
+    //create a function to delete todo
+
+    function deleteIt(userId,todoId){
+
+        let url="http://localhost:8081/deleteTodo/"+userId+"/"+todoId;
+
+        //fetch url
+        fetch(url,{
+            method:"DELETE",
+        })
+        .then(response=>{
+            return response.json();
+        })
+        .then(data=>{
+            console.log(data);
+            renderList(data);
+        })
+        .catch(err=>{
+            console.log(err);
+        })
+    } 
+
+    function renderList(data){
+        let res="";
+        for(let i=0;i<data.length;i++){
+            let single=data[i];
+            let userId=single.userId;
+            console.log("userId=",userId);
+            let todoId=single._id;
+            console.log("todoId=", todoId);
+
+            console.log("id=", todoId);
+            console.log("single=",single);
+            let titleArray=single.title.split(" ");
+            console.log(titleArray);
+            let descriptionArray=single.description.split(" ")
+
+
+            var html=`<div class="singleTodo">
+                           <div class="info">
+                           <div class="title">${single.title}</div>
+                           <div class="description">${single.description}</div>
+                           <div class="deadline">${single.deadline}</div>
+                           </div>
+                           <div class="btns">
+                           <button onClick=editInputBox(${JSON.stringify(userId)},${JSON.stringify(todoId)},${JSON.stringify(titleArray)},${JSON.stringify(descriptionArray)},${JSON.stringify(single.deadline)})>Edit</button>
+                           <button onClick=deleteIt(${JSON.stringify(userId)},${JSON.stringify(todoId)})>Delete</button>
+                           </div>
+                           </div>`;
+                           res+=html;
+        }
+        todolist.innerHTML=res;
+    }
+</script>
+</html>
